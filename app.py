@@ -1,29 +1,20 @@
-import csv
 import requests
 from bs4 import BeautifulSoup
 
-
 def obtener_html(url):
     """
-    Obtiene el contenido HTML de una URL
-
-    Args:
-        url: La URL de la página web a descargar
-
-    Returns:
-        str: El contenido HTML de la página, o None si hay un error
+    Obtiene el contenido HTML de una URL configurando un User-Agent
+    para evitar bloqueos básicos.
     """
     try:
-        # Configurar el User-Agent para evitar bloqueos
-        # Se completa el string para que sea un User-Agent válido
+        # User-Agent completo para simular un navegador real
         headers = {
             'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
         }
 
-        # Realizar la petición GET
+        # Realizar la petición GET con un tiempo de espera de 10 segundos
         respuesta = requests.get(url, headers=headers, timeout=10)
 
-        # Verificar si la petición fue exitosa
         if respuesta.status_code == 200:
             return respuesta.text
         else:
@@ -36,33 +27,46 @@ def obtener_html(url):
 
 def extraer_titulos_noticias(html):
     """
-    Extrae los títulos de noticias de una página HTML
-
-    Args:
-        html: El contenido HTML de la página
-
-    Returns:
-        list: Lista de títulos de noticias encontrados
+    Analiza el HTML y extrae textos que coincidan con estructuras de titulares.
     """
-    # Crear el objeto BeautifulSoup para analizar el HTML
-    soup = BeautifulSoup(html, 'html.parser')
+    if not html:
+        return []
 
-    # Buscar todos los elementos que podrían contener títulos de noticias
-    # Nota: Estos selectores son genéricos y pueden necesitar ajustes según el sitio web
+    soup = BeautifulSoup(html, 'html.parser')
     titulos = []
 
-    # Buscar en elementos h1, h2, h3 que podrían contener títulos
+    # 1. Buscar en etiquetas de encabezado (h1, h2, h3)
     for heading in soup.find_all(['h1', 'h2', 'h3']):
-        # Filtrar solo los que parecen ser títulos de noticias (por ejemplo, con cierta longitud)
-        if heading.text.strip() and len(heading.text.strip()) > 15:
-            titulos.append(heading.text.strip())
+        texto = heading.text.strip()
+        # Filtro de longitud mínima para evitar capturar menús o botones cortos
+        if texto and len(texto) > 15:
+            titulos.append(texto)
 
-    # Buscar también en elementos con clases comunes para títulos de noticias
-    for elemento in soup.select('.title, .headline, .article-title, .news-title'):
-        if elemento.text.strip() and elemento.text.strip() not in titulos:
-            titulos.append(elemento.text.strip())
+    # 2. Buscar en elementos con clases CSS comúnmente usadas en sitios de noticias
+    selectores_comunes = '.title, .headline, .article-title, .news-title'
+    for elemento in soup.select(selectores_comunes):
+        texto = elemento.text.strip()
+        if texto and texto not in titulos:  # Evitar duplicados
+            titulos.append(texto)
 
     return titulos
 
-html = obtener_html("https://www.emol.com/")
-print(extraer_titulos_noticias(html))
+# --- BLOQUE DE EJECUCIÓN ---
+if __name__ == "__main__":
+    url_objetivo = "https://www.emol.com/"
+    
+    print(f"Iniciando extracción en: {url_objetivo}...")
+    
+    contenido = obtener_html(url_objetivo)
+    
+    if contenido:
+        lista_titulares = extraer_titulos_noticias(contenido)
+        
+        if lista_titulares:
+            print(f"\nSe han encontrado {len(lista_titulares)} posibles titulares:\n")
+            for i, titulo in enumerate(lista_titulares, 1):
+                print(f"{i}. {titulo}")
+        else:
+            print("No se encontraron titulares con los selectores actuales.")
+    else:
+        print("No se pudo procesar la página.")
