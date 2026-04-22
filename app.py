@@ -33,11 +33,13 @@ def obtener_html(url):
         print(f"Error al obtener la página: {e}")
         return None
 
-# Ejemplo de uso
-html_content = obtener_html("https://www.emol.com/")
+def extraer_titulos_noticias(html):
+    """
+    Extrae los títulos de noticias de una página HTML
 
-if html_content:
-    print("HTML obtenido con éxito.")
-    # Aquí podrías usar BeautifulSoup para procesar html_content
-else:
-    print("No se pudo obtener el contenido.")
+    Args:
+        html: El contenido HTML de la página
+
+    Returns:
+        list: Lista de títulos de noticias encontrados
+    """
